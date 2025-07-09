@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>食品一覧</title>
+  
+  <style>
+    .expire-today { background-color: #ffe4e1; } /* 薄いピンク */
+  </style>
+  <form method="get" th:action="@{/list}">
+    <label>ジャンルで絞り込み:</label>
+    <select name="genre">
+      <option value="">すべて</option>
+      <option th:each="g : ${genreList}" th:value="${g}"
+              th:text="${g}" th:selected="${g == selectedGenre}"></option>
+    </select>
+    <button type="submit">表示</button>
+  </form>
+
+</head>
+<body>
+<h1>冷蔵庫内の食品一覧</h1>
+
+<table border="1">
+  <tr>
+    <th>削除</th>
+    <th>食品名</th>
+    <th>ジャンル</th>
+    <th>賞味期限</th> 
+    <th>数量</th>      
+    <th>操作</th>
+	<tr th:if="${foods.isEmpty()}">
+	  <td colspan="6">食品がありません</td>
+	</tr>
+
+  </tr>
+
+  <tr th:each="item, iterStat : ${foods}"
+      th:classappend="${item.expireToday} ? 'expire-today' : ''">
+
+    <td>
+      <form th:action="@{/delete}" method="post" style="display:inline;">
+        <input type="hidden" name="index" th:value="${iterStat.index}" />
+        <button type="submit">削除</button>
+      </form>
+    </td>
+
+    <td th:text="${item.name}"></td>
+    <td th:text="${item.genre}"></td>
+    <td th:text="${item.expiryDate}"></td>
+    <td>
+      <span th:text="${item.amount}"></span>
+      <span th:text="${item.unit}"></span>
+    </td>
+
+    <td>
+		<form th:action="@{/update}" method="post" style="display:inline;">
+		  <input type="hidden" name="id" th:value="${item.id}" />
+		  <input type="hidden" name="action" value="increment" />
+		  <button type="submit">＋</button>
+		</form>
+		<form th:action="@{/update}" method="post" style="display:inline;">
+		  <input type="hidden" name="id" th:value="${item.id}" />
+		  <input type="hidden" name="action" value="decrement" />
+		  <button type="submit">ー</button>
+		</form>
+    </td>
+  </tr>
+</table>
+
+
+<h2>食品の追加</h2>
+<form th:action="@{/add}" method="post" th:object="${newFood}">
+  <label>食品名: <input type="text" th:field="*{name}" required /></label><br />
+  <label>ジャンル:
+	<select th:field="*{genre}">
+	  <option value="肉類">肉類</option>
+	  <option value="魚介類">魚介類</option>
+	  <option value="野菜">野菜</option>
+	  <option value="果物">果物</option>
+	  <option value="飲み物">飲み物</option>
+	  <option value="乳製品・卵">乳製品・卵</option>
+	  <option value="調味料">調味料</option>
+	  <option value="加工食品・惣菜">加工食品・惣菜</option>
+	  <option value="穀類・主食">穀類・主食</option>
+	  <option value="スイーツ・デザート">スイーツ・デザート</option>
+	</select>
+  </label><br />
+  <label>数量: <input type="number" step="0.1" th:field="*{amount}" required /></label>
+  <label>単位:
+    <select th:field="*{unit}">
+      <option value="個">個</option>
+      <option value="本">本</option>
+      <option value="g">g</option>
+      <option value="袋">袋</option>
+      <option value="杯">杯</option>
+    </select>
+  </label><br />
+  <label>賞味期限: <input type="date" th:field="*{expiryDate}" required /></label><br />
+  <button type="submit">追加</button>
+</form>
+
+</body>
+</html>
