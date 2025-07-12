@@ -1,104 +1,209 @@
 package com.example.demo.controller;
 
-import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import com.example.demo.model.Reizouko;
+import com.example.demo.model.ReizoukoRoom;
 import com.example.demo.model.Shokuhin;
 
 @Controller
 public class MainController {
 
-    private List<Shokuhin> foods = new ArrayList<>();
-    
-    private boolean initialized = false;
+    private final List<Reizouko> reizoukos = new ArrayList<>();
+    private final List<Shokuhin> foods = new ArrayList<>();
 
-    private void initData() {
-        if (!initialized) {
-            foods.add(new Shokuhin("鶏肉", "肉類", 1, "個", "2025-07-10"));
-            foods.add(new Shokuhin("鮭", "魚介類", 2, "本", "2025-07-15"));
-            foods.add(new Shokuhin("にんじん", "野菜", 3, "本", "2025-07-12"));
-            foods.add(new Shokuhin("牛乳", "飲み物", 1, "本", "2025-07-18"));
-            foods.add(new Shokuhin("バナナ", "果物", 3, "本", "2025-07-20"));
-            initialized = true;
-        }
-    }
+    public MainController() {
+        // サンプル食品
+        Shokuhin apple = new Shokuhin("りんご", "果物", 3, "個", "2025-07-15");
+        Shokuhin milk = new Shokuhin("牛乳", "飲み物", 1, "本", "2025-07-12");
 
-
-    @GetMapping("/list")
-    public String listFoods(@RequestParam(required = false) String genre, Model model) {
-        initData();  // 初期化は一度だけ
-
-        List<String> genreOrder = List.of(
-            "肉類", "魚介類", "野菜", "果物", "飲み物",
-            "乳製品・卵", "調味料", "加工食品・惣菜", "穀類・主食", "スイーツ・デザート"
+        List<ReizoukoRoom> roomsA = List.of(
+            new ReizoukoRoom(1, "野菜室", new ArrayList<>(List.of(apple))),
+            new ReizoukoRoom(2, "冷蔵室", new ArrayList<>(List.of(milk)))
         );
 
-        List<Shokuhin> filteredFoods;
-        if (genre == null || genre.isEmpty()) {
-            filteredFoods = new ArrayList<>(foods);
+        List<ReizoukoRoom> roomsB = List.of(
+            new ReizoukoRoom(3, "冷蔵室", new ArrayList<>()),
+            new ReizoukoRoom(4, "冷凍室", new ArrayList<>())
+        );
 
-            // ★ 2段階ソート：カテゴリ → 賞味期限
-            filteredFoods.sort(
-                Comparator
-                    .comparingInt((Shokuhin f) -> genreOrder.indexOf(f.getGenre()))
-                    .thenComparing(f -> LocalDate.parse(f.getExpiryDate()))
-            );
-        } else {
-            filteredFoods = foods.stream()
-                .filter(food -> genre.equals(food.getGenre()))
-                .sorted(Comparator.comparing(f -> LocalDate.parse(f.getExpiryDate())))
-                .toList();
+        reizoukos.add(new Reizouko(1, "自宅の冷蔵庫", roomsA));
+        reizoukos.add(new Reizouko(2, "職場の冷蔵庫", roomsB));
+    }
+
+    // === 冷蔵庫一覧表示 ===
+    @GetMapping("/reizoukos")
+    public String showReizoukoList(Model model) {
+        model.addAttribute("reizoukos", reizoukos);
+        return "reizouko_list";
+    }
+    
+    @PostMapping("/reizouko/add")
+    public String addReizouko(@RequestParam String name) {
+        int newId = reizoukos.stream().mapToInt(Reizouko::getId).max().orElse(0) + 1;
+        reizoukos.add(new Reizouko(newId, name, new ArrayList<>()));
+        return "redirect:/reizoukos";
+    }
+
+    @PostMapping("/reizouko/{id}/room/add")
+    public String addRoom(@PathVariable int id, @RequestParam String roomName) {
+        Reizouko rz = reizoukos.stream().filter(r -> r.getId() == id).findFirst().orElse(null);
+        if (rz == null) return "redirect:/reizoukos";
+
+        int newRoomId = rz.getRooms().stream().mapToInt(ReizoukoRoom::getId).max().orElse(0) + 1;
+        rz.getRooms().add(new ReizoukoRoom(newRoomId, roomName, new ArrayList<>()));
+
+        return "redirect:/reizouko/" + id;
+    }
+    
+    @PostMapping("/reizouko/{id}/food/add")
+    public String addFoodToRoom(@PathVariable int id,
+                                @RequestParam String room,
+                                @RequestParam String name,
+                                @RequestParam String genre,
+                                @RequestParam int amount,
+                                @RequestParam String unit,
+                                @RequestParam String expiryDate) {
+
+        Reizouko rz = reizoukos.stream().filter(r -> r.getId() == id).findFirst().orElse(null);
+        if (rz == null) return "redirect:/reizoukos";
+
+        ReizoukoRoom targetRoom = rz.getRooms().stream()
+            .filter(r -> r.getRoomName().equals(room))
+            .findFirst()
+            .orElse(null);
+
+        if (targetRoom != null) {
+            targetRoom.getFoods().add(new Shokuhin(name, genre, amount, unit, expiryDate));
         }
 
-        model.addAttribute("foods", filteredFoods);
-        model.addAttribute("selectedGenre", genre);
-        model.addAttribute("genreList", genreOrder);
-        model.addAttribute("newFood", new Shokuhin());
-        return "list";
+        return "redirect:/reizouko/" + id + "?room=" + room;
     }
 
 
 
+    // === 冷蔵庫詳細（部屋と食品） ===
+    @GetMapping("/reizouko/{id}")
+    public String showReizoukoDetail(@PathVariable int id,
+                                     @RequestParam(defaultValue = "冷蔵室") String room,
+                                     Model model) {
+        Reizouko rz = reizoukos.stream().filter(r -> r.getId() == id).findFirst().orElse(null);
+        if (rz == null) return "redirect:/reizoukos";
 
+        ReizoukoRoom selectedRoom = rz.getRooms().stream()
+            .filter(r -> r.getRoomName().equals(room))
+            .findFirst()
+            .orElse(null);
 
-    @PostMapping("/update")
-    public String updateQuantity(@RequestParam int id, @RequestParam String action) {
-        for (Shokuhin food : foods) {
-            if (food.getId() == id) {
-                double amount = food.getAmount();
-                if ("increment".equals(action)) {
-                    food.setAmount(amount + 1);
-                } else if ("decrement".equals(action) && amount > 0) {
-                    food.setAmount(amount - 1);
+        List<Shokuhin> roomFoods = selectedRoom != null ? selectedRoom.getFoods() : new ArrayList<>();
+
+        model.addAttribute("reizouko", rz);
+        model.addAttribute("rooms", rz.getRooms());
+        model.addAttribute("selectedRoom", room);
+        model.addAttribute("foods", roomFoods);
+        model.addAttribute("newFood", new Shokuhin());
+
+        return "reizouko_detail";
+    }
+
+    // === 食品追加（重複チェック付き） ===
+    @PostMapping("/reizouko/{id}/add")
+    public String addItem(@PathVariable int id,
+                          @RequestParam String room,
+                          @ModelAttribute Shokuhin newFood) {
+
+        if (newFood.getName() == null || newFood.getExpiryDate() == null) {
+            return "redirect:/reizouko/" + id + "?room=" + room;
+        }
+
+        Reizouko rz = reizoukos.stream().filter(r -> r.getId() == id).findFirst().orElse(null);
+        if (rz == null) return "redirect:/reizoukos";
+
+        ReizoukoRoom targetRoom = rz.getRooms().stream()
+            .filter(r -> r.getRoomName().equals(room))
+            .findFirst()
+            .orElse(null);
+
+        if (targetRoom != null) {
+            for (Shokuhin food : targetRoom.getFoods()) {
+                if (food.getName().equals(newFood.getName())
+                    && food.getExpiryDate().equals(newFood.getExpiryDate())
+                    && food.getUnit().equals(newFood.getUnit())) {
+
+                    food.setAmount(food.getAmount() + newFood.getAmount());
+                    return "redirect:/reizouko/" + id + "?room=" + room;
                 }
-                break;
+            }
+            targetRoom.getFoods().add(newFood);
+        }
+
+        return "redirect:/reizouko/" + id + "?room=" + room;
+    }
+    
+    @PostMapping("/reizouko/{id}/delete")
+    public String deleteReizouko(@PathVariable int id) {
+        reizoukos.removeIf(r -> r.getId() == id);
+        return "redirect:/reizoukos";
+    }
+
+    
+    // === 食品削除 ===
+    @PostMapping("/reizouko/{id}/delete")
+    public String deleteItem(@PathVariable int id,
+                             @RequestParam String room,
+                             @RequestParam int foodId) {
+        Reizouko rz = reizoukos.stream().filter(r -> r.getId() == id).findFirst().orElse(null);
+        if (rz == null) return "redirect:/reizoukos";
+
+        ReizoukoRoom targetRoom = rz.getRooms().stream()
+            .filter(r -> r.getRoomName().equals(room))
+            .findFirst()
+            .orElse(null);
+
+        if (targetRoom != null) {
+            targetRoom.getFoods().removeIf(f -> f.getId() == foodId);
+        }
+
+        return "redirect:/reizouko/" + id + "?room=" + room;
+    }
+
+    // === 食品数量の増減 ===
+    @PostMapping("/reizouko/{id}/update")
+    public String updateQuantity(@PathVariable int id,
+                                 @RequestParam String room,
+                                 @RequestParam int foodId,
+                                 @RequestParam String action) {
+        Reizouko rz = reizoukos.stream().filter(r -> r.getId() == id).findFirst().orElse(null);
+        if (rz == null) return "redirect:/reizoukos";
+
+        ReizoukoRoom targetRoom = rz.getRooms().stream()
+            .filter(r -> r.getRoomName().equals(room))
+            .findFirst()
+            .orElse(null);
+
+        if (targetRoom != null) {
+            for (Shokuhin food : targetRoom.getFoods()) {
+                if (food.getId() == foodId) {
+                    int amount = food.getAmount();
+                    if ("increment".equals(action)) {
+                        food.setAmount(amount + 1);
+                    } else if ("decrement".equals(action) && amount > 0) {
+                        food.setAmount(amount - 1);
+                    }
+                    break;
+                }
             }
         }
-        return "redirect:/list";
-    }
 
-
-
-    @PostMapping("/delete")
-    public String deleteItem(@RequestParam int index) {
-        if (index >= 0 && index < foods.size()) {
-            foods.remove(index);
-        }
-        return "redirect:/list";
-    }
-
-    @PostMapping("/add")
-    public String addItem(@ModelAttribute Shokuhin newFood) {
-        foods.add(newFood);
-        return "redirect:/list";
+        return "redirect:/reizouko/" + id + "?room=" + room;
     }
 }

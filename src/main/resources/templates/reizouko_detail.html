@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>冷蔵庫の中身</title>
+</head>
+<body>
+
+<h2 th:text="${reizouko.name} + ' の内容'"></h2>
+
+<!-- ▼ 部屋選択 -->
+<div>
+  <p>部屋を選択:</p>
+  <ul>
+    <li th:each="room : ${rooms}">
+      <a th:href="@{|/reizouko/${reizouko.id}?room=${room.roomName}|}"
+         th:text="${room.roomName}"></a>
+    </li>
+  </ul>
+</div>
+
+<!-- ▼ 現在の部屋名 -->
+<h3 th:text="'選択中: ' + ${selectedRoom}"></h3>
+
+<!-- ▼ 食品一覧テーブル -->
+<table border="1">
+  <tr>
+    <th>食品名</th>
+    <th>ジャンル</th>
+    <th>数量</th>
+    <th>単位</th>
+    <th>賞味期限</th>
+  </tr>
+  <tr th:each="food : ${foods}">
+    <td th:text="${food.name}"></td>
+    <td th:text="${food.genre}"></td>
+    <td th:text="${food.amount}"></td>
+    <td th:text="${food.unit}"></td>
+    <td th:text="${food.expiryDate}"></td>
+  </tr>
+</table>
+
+<hr>
+
+<!-- ▼ 食品追加フォーム -->
+<h3>食品を追加</h3>
+<form th:action="@{/reizouko/{id}/food/add(id=${reizouko.id})}" method="post">
+  <input type="hidden" name="room" th:value="${selectedRoom}" />
+  <input type="text" name="name" placeholder="食品名" required />
+  <input type="text" name="genre" placeholder="ジャンル（例：野菜）" required />
+  <input type="number" name="amount" placeholder="数量" min="1" required />
+  <input type="text" name="unit" placeholder="単位（例：個・本）" required />
+  <input type="date" name="expiryDate" placeholder="賞味期限" required />
+  <button type="submit">追加</button>
+</form>
+
+<hr>
+
+<!-- ▼ 部屋追加フォーム -->
+<h3>部屋を追加</h3>
+<form th:action="@{/reizouko/{id}/room/add(id=${reizouko.id})}" method="post">
+  <input type="text" name="roomName" placeholder="部屋名（例：野菜室）" required>
+  <button type="submit">追加</button>
+</form>
+
+<!-- ▼ 戻るリンク -->
+<p><a href="/reizoukos">← 冷蔵庫一覧へ戻る</a></p>
+
+</body>
+</html>

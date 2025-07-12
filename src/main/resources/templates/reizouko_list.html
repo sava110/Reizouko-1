@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head><title>冷蔵庫一覧</title></head>
+<body>
+<h2>冷蔵庫一覧</h2>
+<ul>
+  <li th:each="rz : ${reizoukos}">
+    <a th:href="@{/reizouko/{id}(id=${rz.id})}" th:text="${rz.name}"></a>
+  </li>
+</ul>
+
+<hr>
+<h3>冷蔵庫を追加</h3>
+<form action="/reizouko/add" method="post">
+  <input type="text" name="name" placeholder="冷蔵庫名を入力" required>
+  <button type="submit">追加</button>
+</form>
+
+</body>
+</html>
