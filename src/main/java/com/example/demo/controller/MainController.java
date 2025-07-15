@@ -157,7 +157,7 @@ public class MainController {
 
     
     // === 食品削除 ===
-    @PostMapping("/reizouko/{id}/delete")
+    @PostMapping("/reizouko/{id}/delete-item")
     public String deleteItem(@PathVariable int id,
                              @RequestParam String room,
                              @RequestParam int foodId) {
@@ -175,6 +175,7 @@ public class MainController {
 
         return "redirect:/reizouko/" + id + "?room=" + room;
     }
+
 
     // === 食品数量の増減 ===
     @PostMapping("/reizouko/{id}/update")
