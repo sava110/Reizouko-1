@@ -47,9 +47,32 @@
 <form th:action="@{/reizouko/{id}/food/add(id=${reizouko.id})}" method="post">
   <input type="hidden" name="room" th:value="${selectedRoom}" />
   <input type="text" name="name" placeholder="食品名" required />
-  <input type="text" name="genre" placeholder="ジャンル（例：野菜）" required />
+
+  <select name="genre" required>
+    <option value="" disabled selected>ジャンルを選択</option>
+    <option value="肉類">肉類</option>
+    <option value="魚介類">魚介類</option>
+    <option value="野菜">野菜</option>
+    <option value="果物">果物</option>
+    <option value="飲み物">飲み物</option>
+    <option value="乳製品・卵">乳製品・卵</option>
+    <option value="調味料">調味料</option>
+    <option value="加工食品・惣菜">加工食品・惣菜</option>
+    <option value="穀類・主食">穀類・主食</option>
+    <option value="スイーツ・デザート">スイーツ・デザート</option>
+  </select>  
+  
   <input type="number" name="amount" placeholder="数量" min="1" required />
-  <input type="text" name="unit" placeholder="単位（例：個・本）" required />
+
+  <select name="unit" required>
+    <option value="" disabled selected>単位を選択</option>
+    <option value="個">個</option>
+    <option value="本">本</option>
+    <option value="g">g</option>
+    <option value="袋">袋</option>
+    <option value="杯">杯</option>
+  </select>  
+  
   <input type="date" name="expiryDate" placeholder="賞味期限" required />
   <button type="submit">追加</button>
 </form>

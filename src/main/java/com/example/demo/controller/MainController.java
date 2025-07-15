@@ -1,5 +1,6 @@
 package com.example.demo.controller;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,15 +27,14 @@ public class MainController {
         Shokuhin apple = new Shokuhin("りんご", "果物", 3, "個", "2025-07-15");
         Shokuhin milk = new Shokuhin("牛乳", "飲み物", 1, "本", "2025-07-12");
 
-        List<ReizoukoRoom> roomsA = List.of(
-            new ReizoukoRoom(1, "野菜室", new ArrayList<>(List.of(apple))),
-            new ReizoukoRoom(2, "冷蔵室", new ArrayList<>(List.of(milk)))
-        );
+        List<ReizoukoRoom> roomsA = new ArrayList<>();
+        roomsA.add(new ReizoukoRoom(1, "野菜室", new ArrayList<>(List.of(apple))));
+        roomsA.add(new ReizoukoRoom(2, "冷蔵室", new ArrayList<>(List.of(milk))));
 
-        List<ReizoukoRoom> roomsB = List.of(
-            new ReizoukoRoom(3, "冷蔵室", new ArrayList<>()),
-            new ReizoukoRoom(4, "冷凍室", new ArrayList<>())
-        );
+        List<ReizoukoRoom> roomsB = new ArrayList<>();
+        roomsB.add(new ReizoukoRoom(3, "冷蔵室", new ArrayList<>()));
+        roomsB.add(new ReizoukoRoom(4, "冷凍室", new ArrayList<>()));
+
 
         reizoukos.add(new Reizouko(1, "自宅の冷蔵庫", roomsA));
         reizoukos.add(new Reizouko(2, "職場の冷蔵庫", roomsB));
@@ -54,16 +54,37 @@ public class MainController {
         return "redirect:/reizoukos";
     }
 
+    private int nextRoomId = 100; // 任意の初期値
+
     @PostMapping("/reizouko/{id}/room/add")
     public String addRoom(@PathVariable int id, @RequestParam String roomName) {
-        Reizouko rz = reizoukos.stream().filter(r -> r.getId() == id).findFirst().orElse(null);
+        Reizouko rz = reizoukos.stream()
+            .filter(r -> r.getId() == id)
+            .findFirst()
+            .orElse(null);
+
         if (rz == null) return "redirect:/reizoukos";
 
-        int newRoomId = rz.getRooms().stream().mapToInt(ReizoukoRoom::getId).max().orElse(0) + 1;
+        // 🔽【ここ】部屋名の重複チェック
+        boolean exists = rz.getRooms().stream()
+            .anyMatch(r -> r.getRoomName().equals(roomName));
+
+        if (exists) {
+            return "redirect:/reizouko/" + id + "?error=roomExists";
+        }
+
+        // IDの重複を避けるため、グローバルカウンター or UUID
+        int newRoomId = rz.getRooms().stream()
+            .mapToInt(ReizoukoRoom::getId)
+            .max()
+            .orElse(0) + 1;
+
         rz.getRooms().add(new ReizoukoRoom(newRoomId, roomName, new ArrayList<>()));
 
         return "redirect:/reizouko/" + id;
     }
+
+
     
     @PostMapping("/reizouko/{id}/food/add")
     public String addFoodToRoom(@PathVariable int id,
@@ -173,7 +194,8 @@ public class MainController {
             targetRoom.getFoods().removeIf(f -> f.getId() == foodId);
         }
 
-        return "redirect:/reizouko/" + id + "?room=" + room;
+        return "redirect:/reizouko/" + id + "?room=" + URLEncoder.encode(room, StandardCharsets.UTF_8);
+
     }
 
 
