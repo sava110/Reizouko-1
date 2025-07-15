@@ -1,5 +1,6 @@
 package com.example.demo.controller;
 
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -107,7 +108,8 @@ public class MainController {
             targetRoom.getFoods().add(new Shokuhin(name, genre, amount, unit, expiryDate));
         }
 
-        return "redirect:/reizouko/" + id + "?room=" + room;
+        String encodedRoom = URLEncoder.encode(room, StandardCharsets.UTF_8);
+        return "redirect:/reizouko/" + id + "?room=" + encodedRoom;
     }
 
 
